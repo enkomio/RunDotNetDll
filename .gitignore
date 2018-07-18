@@ -7,6 +7,7 @@
 .metadata
 bin/
 tmp/
+.fake/
 *.tmp
 *.bak
 *.swp
@@ -15,7 +16,6 @@ local.properties
 .classpath
 .settings/
 .loadpath
-Scripts/.fake/*
 
 # External tool builders
 .externalToolBuilders/
@@ -41,6 +41,8 @@ Scripts/.fake/*
 *.suo
 *.user
 *.sln.docstates
+.vs/
+Data/Signatures/PHP/*.zip
 
 # Build results
 
@@ -50,6 +52,8 @@ x64/
 build/
 [Bb]in/
 [Oo]bj/
+packages/
+deploy/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
