@@ -1,4 +1,4 @@
-# RunDotNetDll - It is simple utility to list all methods of a given .NET Assembly and to invoke them.
+# RunDotNetDll - It is a simple utility to list all methods of a given .NET Assembly and to invoke them.
 
 _RunDotNetDll_ allows to introspect a given .NET Assembly in order to list all the methods which are implemented in the Assembly and to invoke them. All this is done via pure Reflection.
 
