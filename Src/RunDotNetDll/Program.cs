@@ -4,11 +4,35 @@ using System.IO;
 using System.Reflection;
 using System.Linq;
 using System.Windows.Forms;
+using System.Runtime.Serialization;
 
 namespace RunDotNetDll
 {
     class Program
     {
+        private static Object CreateObject(Type type)
+        {
+            Object result = null;
+            if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                result = Array.CreateInstance(elementType, 0);
+            }
+            else if (!type.IsAbstract)
+            {
+                try
+                {
+                    result = Activator.CreateInstance(type);
+                }
+                catch
+                {
+                    // unable to create the given object add an uninitialized object
+                    result = FormatterServices.GetUninitializedObject(type);
+                }
+            }
+            return result;
+        }
+
         private static IEnumerable<Type> GetAllTypes(String dll, Boolean filter)
         {
             var assembly = Assembly.LoadFile(dll);
@@ -72,8 +96,7 @@ namespace RunDotNetDll
             var parameters = new List<Object>();
             foreach(var parameterInfo in entryPoint.GetParameters())
             {
-                var mockParameters = Activator.CreateInstance(parameterInfo.ParameterType);
-                parameters.Add(mockParameters);
+                parameters.Add(CreateObject(parameterInfo.ParameterType));
             }
 
             // invoke the entry point
