@@ -8,6 +8,10 @@ namespace HelloWorldProgram
 {
     class Program
     {
+        static Program()
+        {
+            Console.WriteLine("Hello from a static constructor");
+        }
         static void Main(string[] args)
         {
             if (args.Length > 0)

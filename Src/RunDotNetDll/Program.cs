@@ -42,16 +42,29 @@ namespace RunDotNetDll
                 .Where(methodInfo => filter ? methodInfo.Module.Name.Equals(assembly.ManifestModule.Name) : true);
         }
 
-        private static IEnumerable<MethodInfo> GetAllMethods(String dll, Boolean filter)
+        private static IEnumerable<MethodBase> GetAllMethods(String dll, Boolean filter)
         {
-            return 
+            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+            return
                 GetAllTypes(dll, filter).
-                SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
+                SelectMany(type =>
+                {                    
+                    var constructors = type.GetConstructors(flags).Cast<MethodBase>().ToArray();
+                    var methods = type.GetMethods(flags).Cast<MethodBase>().ToArray();
+                    return Enumerable.Concat(constructors, methods);
+                });
         }
 
-        private static String GetFullMethodName(MethodInfo methodInfo)
+        private static String GetFullMethodName(MethodBase methodBase)
+        {            
+            return String.Format("{0}.{1}", methodBase.DeclaringType.FullName, methodBase.Name);
+        }
+
+        private static Boolean IsTargetMethod(MethodBase methodBase, String entryPointName, Int32 metadataToken)
         {
-            return String.Format("{0}.{1}", methodInfo.DeclaringType.FullName, methodInfo.Name);
+            return
+                methodBase.MetadataToken == metadataToken ||
+                GetFullMethodName(methodBase).Equals(entryPointName, StringComparison.OrdinalIgnoreCase);
         }
 
         private static Boolean TryRunWindowsForm(String dll, String entryPointName)
@@ -75,9 +88,18 @@ namespace RunDotNetDll
         private static void RunDllMethod(String dll, String entryPointName)
         {
             Object instance = null;
+            var metadataToken = -1;
+            if (entryPointName.StartsWith("@")) {
+                var cleanToken = entryPointName.TrimStart('@');
+                if (cleanToken.StartsWith("0x"))
+                    metadataToken = Convert.ToInt32(cleanToken, 16);
+                else
+                    metadataToken = Convert.ToInt32(cleanToken, 10);
+            }
+
             var entryPoint = 
                 GetAllMethods(dll, false)
-                .Where(methodInfo => GetFullMethodName(methodInfo).Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
+                .Where(methodBase => IsTargetMethod(methodBase, entryPointName, metadataToken))
                 .FirstOrDefault();
 
             if (entryPoint == null)
@@ -136,7 +158,10 @@ namespace RunDotNetDll
             {
                 Console.Error.WriteLine("Options:");
                 Console.Error.WriteLine("\t<dll>                Display all method of the assembly");
-                Console.Error.WriteLine("\t<dll>,<entrypoint>   The .NET Dll to run and the entry point, eg: mydll.dll,Mynaspace.MyClass.EntryPoint");
+                Console.Error.WriteLine("\t<dll>,<entrypoint>   The .NET Dll to run and the entry point, " + Environment.NewLine +
+                    "                             You can specify the metadata token too." + Environment.NewLine +
+                    "                             eg: mydll.dll,Mynaspace.MyClass.EntryPoint" + Environment.NewLine +
+                    "                                 mydll.dll,@0x06000001");
                 Environment.Exit(1);
             }
 

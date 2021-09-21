@@ -8,6 +8,11 @@ namespace HelloWorldDll
 {
     public class Hello
     {
+        static Hello()
+        {
+            Console.WriteLine("Hello from a static constructor");
+        }
+
         public void SayHello(string[] args)
         {
             if (args.Length > 0)
