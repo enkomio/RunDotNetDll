@@ -145,7 +145,7 @@ namespace RunDotNetDll
             Console.WriteLine("[+] Methods");
             foreach (var method in allMethods)
             {
-                Console.WriteLine("\t" + GetFullMethodName(method));
+                Console.WriteLine("\t{0} (0x{1}) - {2}", method.MetadataToken, method.MetadataToken.ToString("X"), GetFullMethodName(method));
             }
         }
 
