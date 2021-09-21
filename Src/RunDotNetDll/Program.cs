@@ -60,8 +60,9 @@ namespace RunDotNetDll
         }
 
         private static String GetFullMethodName(MethodBase methodBase)
-        {            
-            return String.Format("{0}.{1}", methodBase.DeclaringType.FullName, methodBase.Name);
+        {
+            var moduleName = methodBase.DeclaringType == null ? "<Module>" : methodBase.DeclaringType.FullName;
+            return String.Format("{0}.{1}", moduleName, methodBase.Name);
         }
 
         private static Boolean IsTargetMethod(MethodBase methodBase, String entryPointName, Int32 metadataToken)
