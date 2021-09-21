@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Linq;
-using System.Windows.Forms;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Windows.Forms;
+using dnlib.PE;
+using dnlib.DotNet;
 
 namespace RunDotNetDll
 {
@@ -33,26 +35,28 @@ namespace RunDotNetDll
             return result;
         }
 
-        private static IEnumerable<Type> GetAllTypes(String dll, Boolean filter)
+        private static IEnumerable<Type> GetAllTypes(String dll)
         {
-            var assembly = Assembly.LoadFile(dll);
-            return
-                assembly
-                .GetTypes()
-                .Where(methodInfo => filter ? methodInfo.Module.Name.Equals(assembly.ManifestModule.Name) : true);
+            return Assembly.LoadFile(dll).GetTypes();
         }
 
         private static IEnumerable<MethodBase> GetAllMethods(String dll, Boolean filter)
         {
-            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-            return
-                GetAllTypes(dll, filter).
-                SelectMany(type =>
-                {                    
-                    var constructors = type.GetConstructors(flags).Cast<MethodBase>().ToArray();
-                    var methods = type.GetMethods(flags).Cast<MethodBase>().ToArray();
-                    return Enumerable.Concat(constructors, methods);
-                });
+            var modDef = ModuleDefMD.Load(new PEImage(dll));
+            var methods = modDef.GetTypes().SelectMany(t => t.Methods);
+            var modules = Assembly.LoadFile(dll).GetModules();            
+
+            foreach(var method in methods)
+            {
+                foreach(var module in modules)
+                {
+                    var methodBase = module.ResolveMethod((Int32)method.MDToken.Raw);
+                    if (methodBase != null)
+                    {
+                        yield return methodBase;
+                    }
+                }
+            }
         }
 
         private static String GetFullMethodName(MethodBase methodBase)
@@ -71,7 +75,8 @@ namespace RunDotNetDll
         {
             var success = false;
             var formType =
-                GetAllTypes(dll, true)
+                GetAllTypes(dll)
+                .Where(type => type.Module.Name.Equals(type.Assembly.ManifestModule.Name))
                 .Where(type => typeof(Form).IsAssignableFrom(type) && type.FullName.Equals(entryPointName, StringComparison.OrdinalIgnoreCase))
                 .FirstOrDefault();
 
